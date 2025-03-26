@@ -35,9 +35,13 @@ jobs:
             for file in $(git ls-files --others --exclude-standard -- documents/); do
               if [[ -f "$file" && "${file##*.}" != "md" ]]; then
                 python toMarkdown.py "$file"
+                echo "Converted $file to Markdown"
               fi
             done
           fi
+
+      - name: List documents directory contents
+        run: ls -la documents
 
       - name: Commit and push changes
         run: |
