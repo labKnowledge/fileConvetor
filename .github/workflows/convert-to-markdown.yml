@@ -25,12 +25,18 @@ jobs:
 
       - name: Convert latest uploaded documents to Markdown
         run: |
-          files=$(echo '${{ toJson(github.event.commits[0].added) }}' | jq -r '.[] | select(startswith("documents/") and endswith(".md") | not)')
-          for file in $files; do
-            if [[ -f "$file" ]]; then
-              python toMarkdown.py "$file"
-              echo "Converted $file to Markdown"
-            fi
+          added_files='${{ toJson(github.event.commits[0].added) }}'
+          if [ "$added_files" == "null" ] || [ -z "$added_files" ]; then
+            echo "No added files in the latest commit."
+          else
+            files=$(echo "$added_files" | jq -r '.[] | select(startswith("documents/") and endswith(".md") | not)')
+            for file in $files; do
+              if [[ -f "$file" ]]; then
+                python toMarkdown.py "$file"
+                echo "Converted $file to Markdown"
+              fi
+            done
+          fi
           done
         env:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
