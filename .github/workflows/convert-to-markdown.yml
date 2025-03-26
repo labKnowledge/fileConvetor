@@ -39,7 +39,12 @@ jobs:
             echo "No non-markdown documents were changed."
           else
             echo "Files to convert: $CHANGED_FILES"
-            python toMarkdown.py "$CHANGED_FILES"
+            # For each changed file, create an output filename with .md extension
+            for file in $CHANGED_FILES; do
+              output_file="${file%.*}.md"
+              echo "Converting $file to $output_file"
+              markitdown "$file" > "$output_file"
+            done
           fi
 
       - name: List documents directory contents
