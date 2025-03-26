@@ -1,0 +1,42 @@
+name: Convert Documents to Markdown
+
+on:
+  push:
+    paths:
+      - documents/**
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Convert new documents to Markdown
+        run: |
+          for file in $(git diff --name-only --diff-filter=A HEAD~1 HEAD -- documents/); do
+            if [[ -f "$file" && "${file##*.}" != "md" ]]; then
+              python toMarkdown.py "$file"
+            fi
+          done
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add documents/*.md
+          git commit -m "Convert documents to Markdown" || echo "No changes to commit"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
