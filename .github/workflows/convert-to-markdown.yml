@@ -25,7 +25,6 @@ jobs:
 
       - name: Convert latest uploaded documents to Markdown
         run: |
-          # Get the list of files from the push event
           files=$(echo '${{ toJson(github.event.commits[0].added) }}' | jq -r '.[] | select(startswith("documents/") and endswith(".md") | not)')
           for file in $files; do
             if [[ -f "$file" ]]; then
