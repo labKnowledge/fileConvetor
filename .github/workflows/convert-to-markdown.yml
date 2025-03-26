@@ -32,7 +32,11 @@ jobs:
               fi
             done
           else
-            echo "No previous commit found, skipping diff check."
+            for file in $(git ls-files --others --exclude-standard -- documents/); do
+              if [[ -f "$file" && "${file##*.}" != "md" ]]; then
+                python toMarkdown.py "$file"
+              fi
+            done
           fi
 
       - name: Commit and push changes
