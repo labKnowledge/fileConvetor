@@ -34,6 +34,7 @@ jobs:
 
       - name: Convert documents to Markdown
         run: |
+          pip install 'markitdown[all]'
           echo "Starting conversion..."
           if [ -z "$CHANGED_FILES" ]; then
             echo "No non-markdown documents were changed."
