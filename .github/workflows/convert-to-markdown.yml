@@ -2,51 +2,69 @@ name: Convert Latest Uploaded Documents to Markdown
 on:
   push:
     paths:
-      - documents/**
+      - 'documents/**'
 jobs:
   convert:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2  # To be able to get changed files
+
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.8'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Convert latest uploaded documents to Markdown
+
+      - name: Get changed files
+        id: changed-files
         run: |
-          added_files='${{ toJson(github.event.commits[0].added) }}'
-          if [ "$added_files" == "null" ] || [ -z "$added_files" ]; then
-            echo "No added files in the latest commit."
+          echo "Finding changed files..."
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | grep "^documents/" | grep -v "\.md$" || echo "")
+          echo "Changed files: $CHANGED_FILES"
+          echo "CHANGED_FILES<<EOF" >> $GITHUB_ENV
+          echo "$CHANGED_FILES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Convert documents to Markdown
+        run: |
+          echo "Starting conversion..."
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No non-markdown documents were changed."
           else
-            files=$(echo "$added_files" | jq -r '.[] | select(startswith("documents/") and (endswith(".md") | not))')
-            for file in $files; do
-              if [[ -f "$file" ]]; then
+            echo "Files to convert: $CHANGED_FILES"
+            for file in $CHANGED_FILES; do
+              if [ -f "$file" ]; then
+                echo "Converting $file to Markdown"
                 python toMarkdown.py "$file"
-                echo "Converted $file to Markdown"
+              else
+                echo "File $file not found"
               fi
             done
           fi
-        env:
-          GITHUB_EVENT_PATH: ${{ github.event_path }}
+
       - name: List documents directory contents
-        run: ls -la documents
+        run: ls -la documents/
+
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          # Check if there are any changes to commit
-          if git diff --quiet; then
-            echo "No changes to commit"
-          else
-            # This will add all changes, including new markdown files
-            git add -A
+          
+          # Check if there are any changes
+          if git status --porcelain | grep -q "documents/"; then
+            echo "Changes detected. Committing..."
+            git add documents/
             git commit -m "Convert latest uploaded documents to Markdown"
             git push
+          else
+            echo "No changes to commit"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
