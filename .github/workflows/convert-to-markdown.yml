@@ -1,4 +1,4 @@
-name: Convert Documents to Markdown
+name: Convert Latest Uploaded Documents to Markdown
 
 on:
   push:
@@ -23,22 +23,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Convert new documents to Markdown
+      - name: Convert latest uploaded documents to Markdown
         run: |
-          if git rev-parse HEAD~1 >/dev/null 2>&1; then
-            for file in $(git diff --name-only --diff-filter=A HEAD~1 HEAD -- documents/); do
-              if [[ -f "$file" && "${file##*.}" != "md" ]]; then
-                python toMarkdown.py "$file"
-              fi
-            done
-          else
-            for file in $(git ls-files --others --exclude-standard -- documents/); do
-              if [[ -f "$file" && "${file##*.}" != "md" ]]; then
-                python toMarkdown.py "$file"
-                echo "Converted $file to Markdown"
-              fi
-            done
-          fi
+          # Get the list of files from the push event
+          files=$(echo '${{ toJson(github.event.commits[0].added) }}' | jq -r '.[] | select(startswith("documents/") and endswith(".md") | not)')
+          for file in $files; do
+            if [[ -f "$file" ]]; then
+              python toMarkdown.py "$file"
+              echo "Converted $file to Markdown"
+            fi
+          done
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
 
       - name: List documents directory contents
         run: ls -la documents
@@ -48,7 +44,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add documents/*.md
-          git commit -m "Convert documents to Markdown" || echo "No changes to commit"
+          git commit -m "Convert latest uploaded documents to Markdown" || echo "No changes to commit"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
