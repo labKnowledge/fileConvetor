@@ -1,35 +1,29 @@
 name: Convert Latest Uploaded Documents to Markdown
-
 on:
   push:
     paths:
       - documents/**
-
 jobs:
   convert:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.8'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
       - name: Convert latest uploaded documents to Markdown
         run: |
           added_files='${{ toJson(github.event.commits[0].added) }}'
           if [ "$added_files" == "null" ] || [ -z "$added_files" ]; then
             echo "No added files in the latest commit."
           else
-            files=$(echo "$added_files" | jq -r '.[] | select(startswith("documents/") and endswith(".md") | not)')
+            files=$(echo "$added_files" | jq -r '.[] | select(startswith("documents/") and (endswith(".md") | not))')
             for file in $files; do
               if [[ -f "$file" ]]; then
                 python toMarkdown.py "$file"
@@ -37,13 +31,10 @@ jobs:
               fi
             done
           fi
-          done
         env:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
-
       - name: List documents directory contents
         run: ls -la documents
-
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
