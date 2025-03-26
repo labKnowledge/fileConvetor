@@ -42,7 +42,11 @@ jobs:
             for file in $CHANGED_FILES; do
               if [ -f "$file" ]; then
                 echo "Converting $file to Markdown"
-                python toMarkdown.py "$file"
+                # Generate output filename (replace extension with .md)
+                output_file="${file%.*}.md"
+                echo "Output file will be: $output_file"
+                # Use the python script directly instead of a command
+                python toMarkdown.py "$file" "$output_file"
               else
                 echo "File $file not found"
               fi
