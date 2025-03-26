@@ -39,8 +39,14 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add documents/*.md
-          git commit -m "Convert latest uploaded documents to Markdown" || echo "No changes to commit"
-          git push
+          # Check if there are any changes to commit
+          if git diff --quiet; then
+            echo "No changes to commit"
+          else
+            # This will add all changes, including new markdown files
+            git add -A
+            git commit -m "Convert latest uploaded documents to Markdown"
+            git push
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
